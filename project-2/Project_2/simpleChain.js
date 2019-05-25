@@ -4,10 +4,7 @@
 
 const SHA256 = require("crypto-js/sha256");
 //Importing levelSandbox class
-const LevelSandboxClass = require("./levelSandbox.js");
-// Creating the levelSandbox class object
-const levelDB = new LevelSandboxClass.LevelSandbox();
-
+const db = require("level")("./chaindata");
 /* ===== Block Class ==============================
 |  Class with a constructor for block 			   |
 |  ===============================================*/
@@ -28,34 +25,25 @@ class Block {
 
 class Blockchain {
   constructor() {
-    this.chain = levelDB;
-    addGenesisBlock();
+    // Check Genesis Block
+    if (this.getBlockHeight() == 0) {
+      this.addGenesisBlock();
+    }
   }
 
   // Add Genesis Block
   addGenesisBlock() {
     let genesisBlock = new Block("First Block of Chain - Genesis Block");
     genesisBlock.hash = SHA256(JSON.stringify(genesisBlock)).toString();
-
-    return new Promise(function(resolve, reject) {
-      this.chain.addDataToLevelDB(genesisBlock, function(err, value) {
-        if (err) {
-          console.log("Failed to Add Genesis Block!", err);
-          reject(err);
-        } else {
-          console.log("Block added to chain:", value);
-          resolve(value);
-        }
-      });
-    });
+    return this.addNewBlockWithValue(genesisBlock);
   }
 
   // Add new block
-  addBlock(newBlock) {
-    let chainLength = getBlockHeight();
+  addNewBlock(newBlock) {
+    let chainLength = this.getBlockHeight();
     // Check Genesis Block
     if (chainLength == 0) {
-      addGenesisBlock();
+      this.addGenesisBlock();
       chainLength = chainLength + 1;
     }
 
@@ -68,68 +56,24 @@ class Blockchain {
       .slice(0, -3);
 
     // Link blocks
-    newBlock.previousBlockHash = this.chain.getLevelDBData(
-      newBlock.height - 1
-    ).hash;
+    newBlock.previousBlockHash = this.getBlock(newBlock.height - 1).hash;
 
     // Block hash with SHA256 using newBlock and converting to a string
     newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
 
     // Persist Block in levelDB
-    return new Promise(function(resolve, reject) {
-      this.chain.addDataToLevelDB(
-        newBlock.height,
-        JSON.stringify(newBlock).toString
-      ),
-        function(err, value) {
-          if (err) {
-            console.log("Failed to Add Block to chain!", err);
-            reject(err);
-          } else {
-            console.log("Block added to chain:", value);
-            resolve(value);
-          }
-        };
-    });
-  }
-
-  // Get block height
-  getBlockHeight() {
-    return new Promise(function(resolve, reject) {
-      this.chain.getBlocksCount(function(err, value) {
-        if (err) {
-          console.log("Failed to Block Height!", err);
-          reject(err);
-        } else {
-          resolve(value);
-        }
-      });
-    });
-  }
-
-  // get block
-  getBlock(blockHeight) {
-    return new Promise(function(resolve, reject) {
-      this.chain.getLevelDBData(blockHeight, function(err, value) {
-        if (err) {
-          if (err.type == "NotFoundError") {
-            resolve(undefined);
-          } else {
-            console.log("Block " + key + " get failed", err);
-            reject(err);
-          }
-        } else {
-          resolve(value);
-        }
-      });
-    });
+    return this.addNewBlockWithKeyWithValue(
+      newBlock.height,
+      JSON.stringify(newBlock).toString
+    );
   }
 
   // validate block
   validateBlock(blockHeight) {
+    let self = this;
     return new Promise(function(resolve, reject) {
       // get block object
-      getBlock(blockHeight, function(err, value) {
+      self.getBlock(blockHeight, function(err, value) {
         if (err) {
           if (err.type == "NotFoundError") {
             resolve(undefined);
@@ -147,6 +91,7 @@ class Blockchain {
           let validBlockHash = SHA256(JSON.stringify(block)).toString();
           // Compare
           if (blockHash === validBlockHash) {
+            console.log("valid");
             resolve(true);
           } else {
             console.log(
@@ -167,8 +112,9 @@ class Blockchain {
   // Validate blockchain
   validateChain() {
     let errorLog = [];
+    let self = this;
     return new Promise(function(resolve, reject) {
-      getBlockHeight(function(err, value) {
+      self.getBlockHeight(function(err, value) {
         if (err) {
           console.log("Failed to Block Height!", err);
           reject(err);
@@ -176,10 +122,10 @@ class Blockchain {
           // value = blockHeight
           for (var i = 0; i < value - 1; i++) {
             // validate block
-            if (!this.validateBlock(i)) errorLog.push(i);
+            if (!self.validateBlock(i)) errorLog.push(i);
             // compare blocks hash link
             let blockHash = new Promise(function(resolve, reject) {
-              getBlock(i, function(err, value) {
+              self.getBlock(i, function(err, value) {
                 if (err) {
                   console.log("Failed to get Block!", err);
                   reject(err);
@@ -189,7 +135,7 @@ class Blockchain {
               });
             });
             let previousHash = new Promise(function(resolve, reject) {
-              getBlock(i + 1, function(err, value) {
+              self.getBlock(i + 1, function(err, value) {
                 if (err) {
                   console.log("Failed to get Block!", err);
                   reject(err);
@@ -214,4 +160,91 @@ class Blockchain {
       });
     });
   }
+
+  addNewBlockWithKeyWithValue(key, value) {
+    return new Promise(function(resolve, reject) {
+      db.put(key, value, function(err) {
+        if (err) {
+          console.log("Block " + key + " submission failed", err);
+          reject(err);
+        }
+        resolve(value);
+      });
+    });
+  }
+
+  // Get data from levelDB with key
+  getBlock(key) {
+    return new Promise(function(resolve, reject) {
+      db.get(key, function(err, value) {
+        if (err) {
+          if (err.type == "NotFoundError") {
+            resolve(undefined);
+          } else {
+            console.log("Block " + key + " get failed", err);
+            reject(err);
+          }
+        } else {
+          resolve(value);
+        }
+      });
+    });
+  }
+
+  // Add data to levelDB with value
+  addNewBlockWithValue(value) {
+    let i = 0;
+    let self = this;
+    return new Promise(function(resolve, reject) {
+      db.createReadStream()
+        .on("data", function(data) {
+          i++;
+        })
+        .on("error", function(err) {
+          console.log("Unable to read data stream!", err);
+          reject(err);
+        })
+        .on("close", function() {
+          console.log("Block #" + i);
+          self.addNewBlockWithKeyWithValue(i, value);
+        });
+    });
+  }
+
+  getBlockHeight() {
+    let i = 0;
+    return new Promise(function(resolve, reject) {
+      db.createReadStream()
+        .on("data", function(data) {
+          i++;
+        })
+        .on("error", function(err) {
+          console.log("Unable to read data stream!", err);
+          reject(err);
+        })
+        .on("close", function() {
+          console.log("Block #" + i);
+          resolve(i);
+        });
+    });
+  }
 }
+
+/* ===== Test Function ==========================
+|  Tests for new blockchain 		|
+|  ================================================*/
+
+let myBlockChain = new Blockchain();
+
+// (function theLoop (i) {
+//   setTimeout(function () {
+//       let blockTest = new Block("Test Block - " + (i + 1));
+//       myBlockChain.addNewBlock(blockTest).then((result) => {
+//           console.log(result);
+//           i++;
+//           if (i < 30) theLoop(i);
+//       });
+//   }, 10000);
+// })(0);
+
+// setTimeout(() => myBlockChain.validateChain(), 2000);
