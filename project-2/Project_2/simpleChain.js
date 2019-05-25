@@ -36,16 +36,27 @@ class Blockchain {
   addGenesisBlock() {
     let genesisBlock = new Block("First Block of Chain - Genesis Block");
     genesisBlock.hash = SHA256(JSON.stringify(genesisBlock)).toString();
-    this.chain.addDataToLevelDB(genesisBlock);
+
+    return new Promise(function(resolve, reject) {
+      this.chain.addDataToLevelDB(genesisBlock, function(err, value) {
+        if (err) {
+          console.log("Failed to Add Genesis Block!", err);
+          reject(err);
+        } else {
+          console.log("Block added to chain:", value);
+          resolve(value);
+        }
+      });
+    });
   }
 
   // Add new block
   addBlock(newBlock) {
-    let chainLength = this.chain.getBlocksCount();
+    let chainLength = getBlockHeight();
     // Check Genesis Block
     if (chainLength == 0) {
       addGenesisBlock();
-      chainLength = this.chain.getBlocksCount();
+      chainLength = chainLength + 1;
     }
 
     // Block height
@@ -65,20 +76,53 @@ class Blockchain {
     newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
 
     // Persist Block in levelDB
-    this.chain.addDataToLevelDB(
-      newBlock.height,
-      JSON.stringify(newBlock).toString()
-    );
+    return new Promise(function(resolve, reject) {
+      this.chain.addDataToLevelDB(
+        newBlock.height,
+        JSON.stringify(newBlock).toString
+      ),
+        function(err, value) {
+          if (err) {
+            console.log("Failed to Add Block to chain!", err);
+            reject(err);
+          } else {
+            console.log("Block added to chain:", value);
+            resolve(value);
+          }
+        };
+    });
   }
 
   // Get block height
   getBlockHeight() {
-    return this.chain.getBlocksCount();
+    return new Promise(function(resolve, reject){
+      this.chain.getBlocksCount(function(err, value) {
+        if (err) {
+          console.log("Failed to Block Height!", err);
+          reject(err);
+        } else {
+          resolve(value);
+        }
+      })
+    });
   }
 
   // get block
   getBlock(blockHeight) {
-    return this.chain.getLevelDBData(blockHeight);
+    return new Promise(function(resolve, reject) {
+      this.chain.getLevelDBData(blockHeight, function(err, value) {
+        if (err) {
+          if (err.type == "NotFoundError") {
+            resolve(undefined);
+          } else {
+            console.log("Block " + key + " get failed", err);
+            reject(err);
+          }
+        } else {
+          resolve(value);
+        }
+      });
+    });
   }
 
   // validate block
