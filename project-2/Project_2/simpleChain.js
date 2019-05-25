@@ -95,7 +95,7 @@ class Blockchain {
 
   // Get block height
   getBlockHeight() {
-    return new Promise(function(resolve, reject){
+    return new Promise(function(resolve, reject) {
       this.chain.getBlocksCount(function(err, value) {
         if (err) {
           console.log("Failed to Block Height!", err);
@@ -103,7 +103,7 @@ class Blockchain {
         } else {
           resolve(value);
         }
-      })
+      });
     });
   }
 
@@ -127,48 +127,91 @@ class Blockchain {
 
   // validate block
   validateBlock(blockHeight) {
-    // get block object
-    let block = this.getBlock(blockHeight);
-    // get block hash
-    let blockHash = block.hash;
-    // remove block hash to test block integrity
-    block.hash = "";
-    // generate block hash
-    let validBlockHash = SHA256(JSON.stringify(block)).toString();
-    // Compare
-    if (blockHash === validBlockHash) {
-      return true;
-    } else {
-      console.log(
-        "Block #" +
-          blockHeight +
-          " invalid hash:\n" +
-          blockHash +
-          "<>" +
-          validBlockHash
-      );
-      return false;
-    }
+    return new Promise(function(resolve, reject) {
+      // get block object
+      getBlock(blockHeight, function(err, value) {
+        if (err) {
+          if (err.type == "NotFoundError") {
+            resolve(undefined);
+          } else {
+            console.log("Block " + key + " get failed", err);
+            reject(err);
+          }
+        } else {
+          let block = value;
+          // get block hash
+          let blockHash = block.hash;
+          // remove block hash to test block integrity
+          block.hash = "";
+          // generate block hash
+          let validBlockHash = SHA256(JSON.stringify(block)).toString();
+          // Compare
+          if (blockHash === validBlockHash) {
+            resolve(true);
+          } else {
+            console.log(
+              "Block #" +
+                blockHeight +
+                " invalid hash:\n" +
+                blockHash +
+                "<>" +
+                validBlockHash
+            );
+            resolve(false);
+          }
+        }
+      });
+    });
   }
 
   // Validate blockchain
   validateChain() {
     let errorLog = [];
-    for (var i = 0; i < this.chain.length - 1; i++) {
-      // validate block
-      if (!this.validateBlock(i)) errorLog.push(i);
-      // compare blocks hash link
-      let blockHash = this.chain[i].hash;
-      let previousHash = this.chain[i + 1].previousBlockHash;
-      if (blockHash !== previousHash) {
-        errorLog.push(i);
-      }
-    }
-    if (errorLog.length > 0) {
-      console.log("Block errors = " + errorLog.length);
-      console.log("Blocks: " + errorLog);
-    } else {
-      console.log("No errors detected");
-    }
+    return new Promise(function(resolve, reject) {
+      getBlockHeight(function(err, value) {
+        if (err) {
+          console.log("Failed to Block Height!", err);
+          reject(err);
+        } else {
+          // value = blockHeight
+          for (var i = 0; i < value - 1; i++) {
+            // validate block
+            if (!this.validateBlock(i)) errorLog.push(i);
+            // compare blocks hash link
+            let blockHash = new Promise(function(resolve, reject) {
+              getBlock(i, function(err, value) {
+                if (err) {
+                  console.log("Failed to get Block!", err);
+                  reject(err);
+                } else {
+                  resolve(value.hash);
+                }
+              });
+            });
+            let previousHash = new Promise(function(resolve, reject) {
+              getBlock(i + 1, function(err, value) {
+                if (err) {
+                  console.log("Failed to get Block!", err);
+                  reject(err);
+                } else {
+                  resolve(value.hash);
+                }
+              });
+            });
+            if (blockHash !== previousHash) {
+              errorLog.push(i);
+            }
+          }
+          if (errorLog.length > 0) {
+            console.log("Block errors = " + errorLog.length);
+            console.log("Blocks: " + errorLog);
+            reject(errorLog);
+          } else {
+            console.log("No errors detected");
+            resolve("No errors detected");
+          }
+        }
+      });
+    });
   }
 }
