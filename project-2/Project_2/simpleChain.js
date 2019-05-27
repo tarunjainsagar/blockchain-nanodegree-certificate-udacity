@@ -26,46 +26,61 @@ class Block {
 class Blockchain {
   constructor() {
     // Check Genesis Block
-    if (this.getBlockHeight() == 0) {
-      this.addGenesisBlock();
-    }
+    this.getBlockHeight().then(height => {
+      console.log("hello new chain, height: ", height);
+      if (height == 0) {
+        this.addGenesisBlock();
+      }
+    });
   }
 
   // Add Genesis Block
   addGenesisBlock() {
     let genesisBlock = new Block("First Block of Chain - Genesis Block");
-    genesisBlock.hash = SHA256(JSON.stringify(genesisBlock)).toString();
+    genesisBlock.hash = SHA256(JSON.stringify(genesisBlock)).toString;
+    console.log("adding genesis block to chain: ", genesisBlock);
     return this.addNewBlockWithValue(genesisBlock);
+  }
+
+  getChainLength() {
+    return this.getBlockHeight().then(result => {
+      // Check Genesis Block
+      if (result >= 1) return result;
+
+      return this.addGenesisBlock().then(() => {
+        return 1;
+      });
+    });
   }
 
   // Add new block
   addNewBlock(newBlock) {
-    let chainLength = this.getBlockHeight();
-    // Check Genesis Block
-    if (chainLength == 0) {
-      this.addGenesisBlock();
-      chainLength = chainLength + 1;
-    }
+    return this.getChainLength().then(chainLength => {
+      // Block height
+      newBlock.height = chainLength + 1;
 
-    // Block height
-    newBlock.height = chainLength + 1;
-    // UTC timestamp
-    newBlock.time = new Date()
-      .getTime()
-      .toString()
-      .slice(0, -3);
+      // UTC timestamp
+      newBlock.time = new Date()
+        .getTime()
+        .toString()
+        .slice(0, -3);
 
-    // Link blocks
-    newBlock.previousBlockHash = this.getBlock(newBlock.height - 1).hash;
+      // Link blocks
+      return this.getBlock(newBlock.height).then(previousBlock => {
+        newBlock.previousBlockHash = previousBlock.hash;
 
-    // Block hash with SHA256 using newBlock and converting to a string
-    newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
+        // Block hash with SHA256 using newBlock and converting to a string
+        newBlock.hash = SHA256(JSON.stringify(newBlock)).toString();
 
-    // Persist Block in levelDB
-    return this.addNewBlockWithKeyWithValue(
-      newBlock.height,
-      JSON.stringify(newBlock).toString
-    );
+        // Persist Block in levelDB
+        return this.addNewBlockWithKeyWithValue(
+          newBlock.height,
+          JSON.stringify(newBlock).toString
+        ).then(newBlockValue => {
+          return newBlockValue;
+        });
+      });
+    });
   }
 
   // validate block
@@ -122,27 +137,20 @@ class Blockchain {
           // value = blockHeight
           for (var i = 0; i < value - 1; i++) {
             // validate block
-            if (!self.validateBlock(i)) errorLog.push(i);
-            // compare blocks hash link
-            let blockHash = new Promise(function(resolve, reject) {
-              self.getBlock(i, function(err, value) {
-                if (err) {
-                  console.log("Failed to get Block!", err);
-                  reject(err);
-                } else {
-                  resolve(value.hash);
-                }
-              });
+            self.validateBlock(i).then(function(result) {
+              if (!result) {
+                errorLog.push(i);
+              }
             });
-            let previousHash = new Promise(function(resolve, reject) {
-              self.getBlock(i + 1, function(err, value) {
-                if (err) {
-                  console.log("Failed to get Block!", err);
-                  reject(err);
-                } else {
-                  resolve(value.hash);
-                }
-              });
+
+            // compare blocks hash link
+            let blockHash;
+            self.getBlock(i).then(function(result) {
+              blockHash = result.hash;
+            });
+            let previousHash;
+            self.getBlock(i + 1).then(function(result) {
+              previousHash = result.hash;
             });
             if (blockHash !== previousHash) {
               errorLog.push(i);
@@ -168,6 +176,7 @@ class Blockchain {
           console.log("Block " + key + " submission failed", err);
           reject(err);
         }
+        console.log("addNewBlockWithValue: key ", key, " Value: ", value);
         resolve(value);
       });
     });
@@ -179,7 +188,8 @@ class Blockchain {
       db.get(key, function(err, value) {
         if (err) {
           if (err.type == "NotFoundError") {
-            resolve(undefined);
+            console.log("Block not found", err);
+            reject(err);
           } else {
             console.log("Block " + key + " get failed", err);
             reject(err);
@@ -206,7 +216,15 @@ class Blockchain {
         })
         .on("close", function() {
           console.log("Block #" + i);
-          self.addNewBlockWithKeyWithValue(i, value);
+          self
+            .addNewBlockWithKeyWithValue(i, value)
+            .then(function(result) {
+              resolve(result);
+            })
+            .catch(function(err) {
+              console.log("error in addNewBlockWithValue");
+              reject(err);
+            });
         });
     });
   }
@@ -234,12 +252,12 @@ class Blockchain {
 |  Tests for new blockchain 		|
 |  ================================================*/
 
-let myBlockChain = new Blockchain();
+// let chain = new Blockchain();
 
 // (function theLoop (i) {
 //   setTimeout(function () {
 //       let blockTest = new Block("Test Block - " + (i + 1));
-//       myBlockChain.addNewBlock(blockTest).then((result) => {
+//       chain.addNewBlock(blockTest).then((result) => {
 //           console.log(result);
 //           i++;
 //           if (i < 30) theLoop(i);
@@ -247,4 +265,5 @@ let myBlockChain = new Blockchain();
 //   }, 10000);
 // })(0);
 
-// setTimeout(() => myBlockChain.validateChain(), 2000);
+// setTimeout(() => chain.validateChain(), 2000);
+// chain.getBlock(0).then(c => {console.log(c)});
