@@ -111,47 +111,62 @@ class Blockchain {
     });
   }
 
-  // Validate blockchain
-  validateChain() {
-    let errorLog = [];
+  verifyBlockWithLink(blockHeight) {
     return new Promise((resolve, reject) => {
-      this.getBlockHeight().then(value => {
-        // value = blockHeight
-        for (var i = value - 1; i >= 1; i--) {
-          console.log("iteration no. #", i, "\n");
-          // validate block
-          this.validateBlock(i).then(result => {
-            if (!result) {
-              errorLog.push(i);
-            } else {
-              // compare blocks hash link
-              this.getBlock(i).then(currentBlock => {
-                this.getBlock(i - 1).then(nextBlock => {
+      // place here your logic
+      // return resolve([result object]) in case of success
+      // return reject([error object]) in case of error
+      this.validateBlock(blockHeight).then(valid => {
+        if (!valid) {
+          reject("Invalid Block found at height :", blockHeight);
+        } else {
+          // compare blocks hash link
+          this.getBlock(blockHeight)
+            .then(currentBlock => {
+              this.getBlock(blockHeight - 1)
+                .then(previousBlock => {
                   if (
-                    JSON.parse(currentBlock).previousBlockHash !== JSON.parse(nextBlock).hash
+                    JSON.parse(currentBlock).previousBlockHash !=
+                    JSON.parse(previousBlock).hash
                   ) {
-                    errorLog.push(i);
+                    reject("Invalid Block Link found at height :", blockHeight);
+                  } else {
+                    resolve("Valid Block at Height: ", blockHeight);
                   }
+                })
+                .catch(err => {
+                  reject(
+                    "Failed to Previous Get Block at Height: ",
+                    blockHeight,
+                    err
+                  );
                 });
-              });
-              if (i == 1) {
-                done();
-              }
-            }
-          });
-        }
-
-        function done() {
-          if (errorLog.length > 0) {
-            console.log("Block errors = " + errorLog.length);
-            console.log("Blocks: " + errorLog);
-            reject(errorLog);
-          } else {
-            console.log("No errors detected");
-            resolve("No errors detected");
-          }
+            })
+            .catch(err => {
+              reject("Failed to Get Block at Height: ", blockHeight, err);
+            });
         }
       });
+    });
+  }
+
+  // Validate blockchain
+  validateChain() {
+    return this.getBlockHeight().then(async height => {
+      console.log("BlockHeight at Validate Chain:", height);
+      var promises = [];
+      let success = true;
+      for (var i = height - 1; i > 1; i--) {
+        try {
+          console.log("Validating for height:", i);
+          await this.verifyBlockWithLink(i);
+        } catch (e) {
+          console.log("Found error :", e);
+          success = false;
+        }
+      }
+
+      return success;
     });
   }
 
@@ -182,7 +197,6 @@ class Blockchain {
             reject(err);
           }
         } else {
-          console.log("Found Block at key:", key, " Value:", value);
           resolve(value);
         }
       });
