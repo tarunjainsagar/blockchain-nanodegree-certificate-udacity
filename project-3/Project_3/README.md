@@ -1,14 +1,33 @@
-# Blockchain Data
+Framework used: Express Node JS Framework
 
-Blockchain has the potential to change the way that the world approaches data. Develop Blockchain skills by understanding the data model behind Blockchain by developing your own simplified private blockchain.
+# GET Endpoint: http://localhost:8000/api/block/<block_height>
 
-## Getting Started
+Success Response: 
+{
+   "hash":"0bd0bc4b7b53b7bba17fa0e6f07b0c472942b9cd63532d2327c4509926136d30",
+   "height":4,
+   "body":"Test Data #4",
+   "time":"1559238759",
+   "previousBlockHash":"65849d1261229ae3b4f78d3663733c75c8eabc9e80bdf02318c7cb0a375292cb"
+}
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+Failure Response:
+Invalid height index!!!
 
-### Prerequisites
 
-Installing Node and NPM is pretty straightforward using the installer package available from the (Node.js® web site)[https://nodejs.org/en/].
+# POST Endpoint: http://localhost:8000/api/block
+# POST Parameter: Key -> "data" (mandatory string parameter)
+Success Response:
+{
+   "hash":"118479787758785f5015f7553944a895fc63409f04050e301696f88574d2fd82",
+   "height":10,
+   "body":"123",
+   "time":"1559238874",
+   "previousBlockHash":"45089e9faad988be803d5be8bfccd8d5fbbb97396afa829f9cee0682a30403ca"
+}
+
+Failure Response:
+Invalid post request, Please provide data for block!!!
 
 ### Configuring your project
 
@@ -24,6 +43,10 @@ npm install crypto-js --save
 ```
 npm install level --save
 ```
+- Install express framework with --save flag
+```
+npm install express --save
+```
 
 ## Testing
 
@@ -31,31 +54,13 @@ To test code:
 1: Open a command prompt or shell terminal after install node.js.
 2: Enter a node session, also known as REPL (Read-Evaluate-Print-Loop).
 ```
-node
+3. To start the application, run the command:
+node app.js
 ```
-3: Copy and paste your code into your node session
-4: Instantiate blockchain with blockchain variable
+4. This will initialize the blockchain for the first time by adding 10 blocks to the blockchain. You will see a chaindata db in your working directory.
 ```
-let blockchain = new Blockchain();
+5. If you close the server and restart, the initialization will not happen. Chain saved in chaindata db will be picked up.
 ```
-5: Generate 10 blocks using a for loop
+6. Try GET api using endpoint: http://localhost:8000/api/block/<block_height>, This will retrieve json data for the block at height, <block_height>, In case if the invalid height is provided, error message will be shown.
 ```
-for (var i = 0; i <= 10; i++) {
-  blockchain.addBlock(new Block("test data "+i));
-}
-```
-6: Validate blockchain
-```
-blockchain.validateChain();
-```
-7: Induce errors by changing block data
-```
-let inducedErrorBlocks = [2,4,7];
-for (var i = 0; i < inducedErrorBlocks.length; i++) {
-  blockchain.chain[inducedErrorBlocks[i]].data='induced chain error';
-}
-```
-8: Validate blockchain. The chain should now fail with blocks 2,4, and 7.
-```
-blockchain.validateChain();
-```
+7. Try POST api using endpoint: http://localhost:8000/api/block, The post data should contain key "data" and value as "string", the api will add the block to chain and return the saved block's data.
