@@ -23,11 +23,15 @@ class BlockController {
    */
   getBlockByIndex() {
     this.app.get("/api/block/:index", (req, res) => {
-
-      // check if height parameter is out of bound
-
-      this.chain.getBlock(req.params.index).then(block => {
-        res.send(JSON.parse(block));
+      this.chain.getBlockHeight().then(height => {
+        // check if height parameter is out of bound
+        if (height <= req.params.index) {
+          this.chain.getBlock(req.params.index).then(block => {
+            res.send(JSON.parse(block));
+          });
+        } else {
+          res.send("Invalid height index, Chain height is: ", height);
+        }
       });
     });
   }
