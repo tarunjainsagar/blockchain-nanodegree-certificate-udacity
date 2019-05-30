@@ -238,37 +238,3 @@ class Blockchain {
 }
 
 module.exports.BlockChain = Blockchain;
-
-/* ===== Test Function ==========================
-|  Tests for new blockchain 		|
-|  ================================================*/
-
-// let chain = new Blockchain();
-
-// (function theLoop (i) {
-//   setTimeout(function () {
-//       let blockTest = new Block("Test Block - " + (i + 1));
-//       chain.addNewBlock(blockTest).then((result) => {
-//           console.log(result);
-//           i++;
-//           if (i < 30) theLoop(i);
-//       });
-//   }, 10000);
-// })(0);
-
-// // setTimeout(() => chain.validateChain(), 2000);
-// chain.getBlock(0).then(c => {console.log(c)});
-// chain.getBlock(1).then(c => {console.log(c)});
-// chain.getBlock(2).then(c => {console.log(c)});
-
-// // Check ChainHeight
-// chain.getBlockHeight().then(c => {console.log(c)});
-
-// // Check Block Validity
-// chain.validateBlock(0).then(c => {console.log(c)});
-// chain.validateBlock(1).then(c => {console.log(c)});
-// chain.validateBlock(2).then(c => {console.log(c)});
-
-// // Check Chain Validity
-// chain.validateChain().then(c => {console.log(c)});
-// chain.addNewBlock(new Block('new block 1')).then(c => {console.log(c)});
