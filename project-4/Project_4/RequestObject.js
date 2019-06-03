@@ -3,11 +3,11 @@
 |  =======================================================*/
 
 class RequestObject {
-  constructor(walletAddr, timestamp) {
+  constructor(walletAddr, timestamp, timeLeft) {
     this.walletAddress = walletAddr;
     this.requestTimeStamp = timestamp;
     this.message = walletAddr + ":" + timestamp + ":starRegistry";
-    this.validationWindow = 300;
+    this.validationWindow = timeLeft;
   }
 }
 

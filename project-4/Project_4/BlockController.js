@@ -1,5 +1,4 @@
 const BlockClass = require("./Block.js");
-const RequestObjectClass = require("./RequestObject.js");
 const MemPoolClass = require("./MemPool.js");
 const BlockModelClass = require("./BlockChainModel.js");
 
@@ -19,6 +18,7 @@ class BlockController {
     this.getBlockByIndex();
     this.postNewBlock();
     this.requestValidation();
+    this.validateRequestByWallet();
   }
 
   /**
@@ -60,7 +60,7 @@ class BlockController {
   }
 
   /**
-   * Implement request validation api
+   * Implement add validation api
    */
   requestValidation() {
     this.app.post("/requestValidation", (req, res) => {
@@ -69,14 +69,35 @@ class BlockController {
         walletAddress &&
         (typeof walletAddress === "string" || walletAddress instanceof String)
       ) {
-        var timestamp = new Date().getTime();
-        let requestObject = new RequestObjectClass.RequestObject(
-          walletAddress,
-          timestamp
-        );
-        res.send(this.memPool.addRequestValidation(requestObject));
+        res.send(this.memPool.addRequestValidation(walletAddress));
       } else {
-        res.send("Invalid post request, Please provide data for block!!!");
+        res.send(
+          "Invalid add validation request, Please provide wallet address!!!"
+        );
+      }
+    });
+  }
+
+  /**
+   * Implement request validation api
+   */
+  validateRequestByWallet() {
+    this.app.post("/message-signature/validate", (req, res) => {
+      let walletAddress = req.body.address;
+      let signature = req.body.signature;
+      if (
+        walletAddress &&
+        signature &&
+        ((typeof walletAddress === "string" || walletAddress instanceof String)) &&
+        ((typeof signature === "string" || signature instanceof String))
+      ) {
+        res.send(
+          this.memPool.validateRequestByWallet(walletAddress, signature)
+        );
+      } else {
+        res.send(
+          "Invalid validate request, Please provide address and signature!!!"
+        );
       }
     });
   }
