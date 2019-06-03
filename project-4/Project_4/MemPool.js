@@ -10,6 +10,7 @@ class MemPool {
   constructor() {
     console.log("Initialized Mem Pool ...");
     this.mempool = [];
+    this.mempoolValid = [];
     this.timeoutRequests = [];
   }
 
@@ -67,13 +68,25 @@ class MemPool {
         );
         // // If valid Message returned by Bitcoin api
         if (isValid) {
-          return new ValidRequestObjectClass.ValidRequestObject(
+          this.mempoolValid[
+            requestObject.walletAddress
+          ] = new ValidRequestObjectClass.ValidRequestObject(
             requestObject,
             isValid
           );
+
+          // Clean up timeOut Array
+          this.cleanUpValidationRequest(requestObject.walletAddress);
+
+          return this.mempoolValid[requestObject.walletAddress];
         }
       }
     }
+  }
+
+  cleanUpValidationRequest(walletAddress) {
+    this.timeoutRequests.splice(walletAddress);
+    this.mempool.splice(walletAddress);
   }
 }
 
