@@ -1,13 +1,20 @@
+const RequestObjectClass = require("./RequestObject.js");
+
 /* ===== Request Object Class ==============================
 |  Class with a constructor for Request Validation Object  |
 |  =======================================================*/
 
 class MemPool {
   constructor(walletAddr, timestamp) {
-    this.walletAddress = walletAddr;
-    this.requestTimeStamp = timestamp;
-    this.message = walletAddr + ":" + timestamp + ":starRegistry";
-    this.validationWindow = 300;
+    console.log("Initialized Mem Pool ...")
+    this.mempool = [];
+    this.timeoutRequests = [];
+  }
+
+  addRequestValidation(requestObject) {
+    this.mempool[requestObject.walletAddress] = requestObject;
+    this.timeoutRequests[requestObject.walletAddress] = requestObject.requestTimeStamp;
+    return this.mempool[requestObject.walletAddress];
   }
 }
 

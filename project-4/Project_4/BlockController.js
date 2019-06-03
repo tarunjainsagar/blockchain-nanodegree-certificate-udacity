@@ -1,4 +1,5 @@
 const BlockClass = require("./Block.js");
+const RequestObjectClass = require("./RequestObject.js");
 const MemPoolClass = require("./MemPool.js");
 const BlockModelClass = require("./BlockChainModel.js");
 
@@ -17,6 +18,7 @@ class BlockController {
     this.initializeMockData();
     this.getBlockByIndex();
     this.postNewBlock();
+    this.requestValidation();
   }
 
   /**
@@ -62,17 +64,17 @@ class BlockController {
    */
   requestValidation() {
     this.app.post("/requestValidation", (req, res) => {
+      let walletAddress = req.body.address;
       if (
-        req.body.address &&
-        (typeof req.body.address === "string" || req.body.address instanceof String)
+        walletAddress &&
+        (typeof walletAddress === "string" || walletAddress instanceof String)
       ) {
         var timestamp = new Date().getTime();
-        var walletAddr = req.body.address;
-        let memPoolObject = new MemPoolClass.MemPool(req.body.data, timestamp);
-
-        this.chain.addNewBlock(blockAux).then(block => {
-          res.send(JSON.parse(block));
-        });
+        let requestObject = new RequestObjectClass.RequestObject(
+          walletAddress,
+          timestamp
+        );
+        res.send(this.memPool.addRequestValidation(requestObject));
       } else {
         res.send("Invalid post request, Please provide data for block!!!");
       }
