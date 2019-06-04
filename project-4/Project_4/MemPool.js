@@ -1,3 +1,5 @@
+var bitcoin = require('bitcoinjs-lib') // v3.x.x
+const bs58check = require("bs58check");
 const bitcoinMessage = require("bitcoinjs-message");
 const RequestObjectClass = require("./RequestObject.js");
 const ValidRequestObjectClass = require("./ValidRequestObject.js");
@@ -80,6 +82,8 @@ class MemPool {
 
           return this.mempoolValid[requestObject.walletAddress];
         }
+      } else {
+        return "Validation Window Expired !!! \nAdd new validation request.";
       }
     }
   }
