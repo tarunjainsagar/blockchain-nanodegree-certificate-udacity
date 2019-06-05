@@ -1,5 +1,3 @@
-var bitcoin = require('bitcoinjs-lib') // v3.x.x
-const bs58check = require("bs58check");
 const bitcoinMessage = require("bitcoinjs-message");
 const RequestObjectClass = require("./RequestObject.js");
 const ValidRequestObjectClass = require("./ValidRequestObject.js");
@@ -36,11 +34,14 @@ class MemPool {
       this.mempool[walletAddress] = requestObject;
 
       // Set Timeout for request
-      this.timeoutRequests[walletAddress] = setTimeout(function() {
-        this.mempool.splice(walletAddress);
+      this.timeoutRequests[walletAddress] = setTimeout(() => {
+        this.cleanUpValidationRequest(walletAddress);
       }, TimeoutRequestsWindowTime);
     } else {
-      this.updateValidationWindow(walletAddress);
+      let timeleft = this.updateValidationWindow(walletAddress);
+      if (timeleft <= 0) {
+        return "Validation Window Expired !!! \nAdd new validation request.";
+      }
     }
     return this.mempool[walletAddress];
   }
@@ -55,8 +56,7 @@ class MemPool {
 
   validateRequestByWallet(walletAddress, signature) {
     let requestObject = this.mempool[walletAddress];
-    console.log(requestObject);
-    // If Request if removed from memPool or request was never added to mempool
+    // If Request if removed from memPool or invalid request
     if (requestObject == undefined) {
       return "Invalid validate request, No such wallet address found !!!";
     } else {
@@ -68,19 +68,23 @@ class MemPool {
           walletAddress,
           signature
         );
-        // // If valid Message returned by Bitcoin api
+        // If valid Message returned by Bitcoin api
         if (isValid) {
-          this.mempoolValid[
-            requestObject.walletAddress
-          ] = new ValidRequestObjectClass.ValidRequestObject(
-            requestObject,
-            isValid
-          );
-
-          // Clean up timeOut Array
-          this.cleanUpValidationRequest(requestObject.walletAddress);
-
-          return this.mempoolValid[requestObject.walletAddress];
+          // Add one validMemPool once only; Multiple validation request can made within ValidationWindow
+          if (this.mempoolValid[walletAddress] == undefined) {
+            this.mempoolValid[
+              walletAddress
+            ] = new ValidRequestObjectClass.ValidRequestObject(
+              requestObject,
+              isValid
+            );
+            setTimeout(() => {
+              delete this.mempoolValid[walletAddress];
+            }, requestObject.validationWindow);
+          }
+          return this.mempoolValid[walletAddress];
+        } else {
+          return "Invalid signature found !!! \nTry Again with valid details.";
         }
       } else {
         return "Validation Window Expired !!! \nAdd new validation request.";
@@ -89,8 +93,10 @@ class MemPool {
   }
 
   cleanUpValidationRequest(walletAddress) {
-    this.timeoutRequests.splice(walletAddress);
-    this.mempool.splice(walletAddress);
+    delete this.timeoutRequests[walletAddress];
+    if (this.mempool[walletAddress] != undefined) {
+      delete this.mempool[walletAddress];
+    }
   }
 }
 
