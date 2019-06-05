@@ -16,18 +16,40 @@ class BlockController {
     this.app = app;
     this.memPool = new MemPoolClass.MemPool();
     this.chain = new BlockModelClass.BlockChain();
-    this.initializeMockData();
+    // this.initializeMockData();
     this.getStarByHash();
+    this.getStarByAddress();
+    this.getBlockByIndex();
     this.postNewBlock();
     this.requestValidation();
     this.validateRequestByWallet();
   }
 
   getDecodedBlock(block) {
+    console.log(block);
     block = JSON.parse(block);
     block.body.star.storyDecoded = hex2ascii(block.body.star.story);
     return block;
   }
+
+  /**
+   * Implement a GET Endpoint to retrieve a block by index, url: "/block/:index"
+   */
+  getBlockByIndex() {
+    this.app.get("/block/:index", (req, res) => {
+      this.chain.getBlockHeight().then(height => {
+        // check if height parameter is out of bound
+        if (height >= req.params.index) {
+          this.chain.getBlock(req.params.index).then(block => {
+            res.send(this.getDecodedBlock(block));
+          });
+        } else {
+          res.send("Invalid height index!!!");
+        }
+      });
+    });
+  }
+
   /**
    * Implement a GET Endpoint to retrieve a block by index, url: "/stars/hash:index"
    */
@@ -38,6 +60,26 @@ class BlockController {
           res.send("No block found for hash: " + req.params.index);
         } else {
           res.send(this.getDecodedBlock(block));
+        }
+      });
+    });
+  }
+
+  /**
+   * Implement a GET Endpoint to retrieve a block by index, url: "/stars/address:index"
+   */
+  getStarByAddress() {
+    this.app.get("/stars/address::index", (req, res) => {
+      this.chain.getBlocksByAddress(req.params.index).then(blocks => {
+        if (typeof blocks !== "undefined" && blocks.length > 0) {
+          let decodedBlocks = [];
+          for (var i = 0; i < blocks.length; i++) {
+            console.log(i);
+            decodedBlocks.push(this.getDecodedBlock(blocks[i]));
+          }
+          res.send(decodedBlocks);
+        } else {
+          res.send("No blocks found for address: " + req.params.index);
         }
       });
     });
@@ -63,6 +105,7 @@ class BlockController {
           if (valid) {
             let blockAux = new BlockClass.Block(body);
             this.chain.addNewBlock(blockAux).then(block => {
+              this.memPool.cleanUpValidationRequest(walletAddress);
               res.send(this.getDecodedBlock(block));
             });
           } else {
@@ -129,23 +172,23 @@ class BlockController {
   /**
    * Help method to inizialized Mock dataset, adds 10 test blocks to the blocks array
    */
-  initializeMockData() {
-    this.chain.getBlockHeight().then(async height => {
-      if (height == 0) {
-        for (var index = 0; index < 10; index++) {
-          try {
-            let blockAux = new BlockClass.Block(`Test Data #${index}`);
-            await this.chain.addNewBlock(blockAux);
-          } catch (e) {
-            console.log("Found error :", e);
-          }
-        }
-        console.log("Added all blocks !!!");
-      } else {
-        console.log("Chain is already initialized !!!");
-      }
-    });
-  }
+  // initializeMockData() {
+  //   this.chain.getBlockHeight().then(async height => {
+  //     if (height == 0) {
+  //       for (var index = 0; index < 10; index++) {
+  //         try {
+  //           let blockAux = new BlockClass.Block(`Test Data #${index}`);
+  //           await this.chain.addNewBlock(blockAux);
+  //         } catch (e) {
+  //           console.log("Found error :", e);
+  //         }
+  //       }
+  //       console.log("Added all blocks !!!");
+  //     } else {
+  //       console.log("Chain is already initialized !!!");
+  //     }
+  //   });
+  // }
 }
 
 /**

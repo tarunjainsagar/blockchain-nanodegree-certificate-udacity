@@ -257,5 +257,25 @@ class Blockchain {
         });
     });
   }
+  // Get block by hash
+  getBlocksByAddress(address) {
+    console.log("address is:" + address);
+    let blocks = [];
+    return new Promise((resolve, reject) => {
+      db.createReadStream()
+        .on("data", function(data) {
+          if (JSON.parse(data.value).body.address == address) {
+            blocks.push(data.value);
+          }
+        })
+        .on("error", function(err) {
+          reject(err);
+        })
+        .on("close", function() {
+          resolve(blocks);
+        });
+    });
+  }
 }
+
 module.exports.BlockChain = Blockchain;
