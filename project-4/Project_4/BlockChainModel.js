@@ -24,7 +24,9 @@ class Blockchain {
 
   // Add Genesis Block
   addGenesisBlock() {
-    let genesisBlock = new BlockClass.Block("First Block of Chain - Genesis Block");
+    let genesisBlock = new BlockClass.Block(
+      "First Block of Chain - Genesis Block"
+    );
     genesisBlock.hash = SHA256(JSON.stringify(genesisBlock)).toString();
     console.log("adding genesis block to chain: ", genesisBlock);
     return this.addNewBlockWithValue(JSON.stringify(genesisBlock));
@@ -235,6 +237,25 @@ class Blockchain {
         });
     });
   }
-}
 
+  // Get block by hash
+  getBlockByHash(hash) {
+    console.log("hash is:" + hash);
+    let block = null;
+    return new Promise((resolve, reject) => {
+      db.createReadStream()
+        .on("data", function(data) {
+          if (JSON.parse(data.value).hash == hash) {
+            block = data.value;
+          }
+        })
+        .on("error", function(err) {
+          reject(err);
+        })
+        .on("close", function() {
+          resolve(block);
+        });
+    });
+  }
+}
 module.exports.BlockChain = Blockchain;

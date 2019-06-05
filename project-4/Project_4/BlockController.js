@@ -17,25 +17,27 @@ class BlockController {
     this.memPool = new MemPoolClass.MemPool();
     this.chain = new BlockModelClass.BlockChain();
     this.initializeMockData();
-    this.getBlockByIndex();
+    this.getStarByHash();
     this.postNewBlock();
     this.requestValidation();
     this.validateRequestByWallet();
   }
 
+  getDecodedBlock(block) {
+    block = JSON.parse(block);
+    block.body.star.storyDecoded = hex2ascii(block.body.star.story);
+    return block;
+  }
   /**
-   * Implement a GET Endpoint to retrieve a block by index, url: "/api/block/:index"
+   * Implement a GET Endpoint to retrieve a block by index, url: "/stars/hash:index"
    */
-  getBlockByIndex() {
-    this.app.get("/api/block/:index", (req, res) => {
-      this.chain.getBlockHeight().then(height => {
-        // check if height parameter is out of bound
-        if (height >= req.params.index) {
-          this.chain.getBlock(req.params.index).then(block => {
-            res.send(JSON.parse(block));
-          });
+  getStarByHash() {
+    this.app.get("/stars/hash::index", (req, res) => {
+      this.chain.getBlockByHash(req.params.index).then(block => {
+        if (block == null) {
+          res.send("No block found for hash: " + req.params.index);
         } else {
-          res.send("Invalid height index!!!");
+          res.send(this.getDecodedBlock(block));
         }
       });
     });
@@ -61,9 +63,7 @@ class BlockController {
           if (valid) {
             let blockAux = new BlockClass.Block(body);
             this.chain.addNewBlock(blockAux).then(block => {
-              block = JSON.parse(block);
-              block.body.star.storyDecoded = hex2ascii(block.body.star.story);
-              res.send(block);
+              res.send(this.getDecodedBlock(block));
             });
           } else {
             res.send("Request not found in Valid Pool!!!");
