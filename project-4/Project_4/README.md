@@ -146,15 +146,3 @@ To test code:
 3. To start the application, run the command:
 node app.js
 ```
-
-4. This will initialize the blockchain for the first time by adding 10 blocks to the blockchain. You will see a chaindata db in your working directory.
-
-```
-5. If you close the server and restart, the initialization will not happen. Chain saved in chaindata db will be picked up.
-```
-
-6. Try GET api using endpoint: http://localhost:8000/api/block/<block_height>, This will retrieve json data for the block at height, <block_height>, In case if the invalid height is provided, error message will be shown.
-
-```
-7. Try POST api using endpoint: http://localhost:8000/api/block, The post data should contain key "data" and value as "string", the api will add the block to chain and return the saved block's data.
-```
