@@ -1,3 +1,5 @@
+const hex2ascii = require("hex2ascii");
+const BodyObjectClass = require("./BodyObject.js");
 const BlockClass = require("./Block.js");
 const MemPoolClass = require("./MemPool.js");
 const BlockModelClass = require("./BlockChainModel.js");
@@ -43,18 +45,39 @@ class BlockController {
    * Implement a POST Endpoint to add a new Block, url: "/api/block"
    */
   postNewBlock() {
-    this.app.post("/api/block", (req, res) => {
+    this.app.post("/block", (req, res) => {
       // Check if content has data and it is string only
-      if (
-        req.body.data &&
-        (typeof req.body.data === "string" || req.body.data instanceof String)
-      ) {
-        let blockAux = new BlockClass.Block(req.body.data);
-        this.chain.addNewBlock(blockAux).then(block => {
-          res.send(JSON.parse(block));
-        });
-      } else {
-        res.send("Invalid post request, Please provide data for block!!!");
+      let walletAddress = req.body.address;
+      let starInput = JSON.parse(req.body.star);
+      try {
+        if (
+          walletAddress &&
+          starInput &&
+          starInput.story != undefined &&
+          (typeof walletAddress === "string" || walletAddress instanceof String)
+        ) {
+          let body = new BodyObjectClass.BodyObject(walletAddress, starInput);
+          let valid = this.memPool.isValidRequest(walletAddress);
+          if (valid) {
+            let blockAux = new BlockClass.Block(body);
+            this.chain.addNewBlock(blockAux).then(block => {
+              block = JSON.parse(block);
+              block.body.star.storyDecoded = hex2ascii(block.body.star.story);
+              res.send(block);
+            });
+          } else {
+            res.send("Request not found in Valid Pool!!!");
+          }
+        } else {
+          res.send(
+            "Invalid post request, Please provide wallet address and valid star details!!!"
+          );
+        }
+      } catch (e) {
+        res.send(
+          "Invalid post request, Please provide wallet address and star details for block!!! \nException: " +
+            e
+        );
       }
     });
   }
@@ -88,8 +111,9 @@ class BlockController {
       if (
         walletAddress &&
         signature &&
-        ((typeof walletAddress === "string" || walletAddress instanceof String)) &&
-        ((typeof signature === "string" || signature instanceof String))
+        (typeof walletAddress === "string" ||
+          walletAddress instanceof String) &&
+        (typeof signature === "string" || signature instanceof String)
       ) {
         res.send(
           this.memPool.validateRequestByWallet(walletAddress, signature)

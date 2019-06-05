@@ -21,6 +21,10 @@ class MemPool {
       .slice(0, -3);
   }
 
+  isValidRequest(walletAddress) {
+    return this.mempoolValid[walletAddress] != undefined;
+  }
+
   addRequestValidation(walletAddress) {
     // If resubmitted request, then do no add again
     if (typeof this.mempool[walletAddress] === "undefined") {
@@ -78,9 +82,10 @@ class MemPool {
               requestObject,
               isValid
             );
-            setTimeout(() => {
-              delete this.mempoolValid[walletAddress];
-            }, requestObject.validationWindow);
+
+            // setTimeout(() => {
+            //   delete this.mempoolValid[walletAddress];
+            // }, requestObject.validationWindow);
           }
           return this.mempoolValid[walletAddress];
         } else {
