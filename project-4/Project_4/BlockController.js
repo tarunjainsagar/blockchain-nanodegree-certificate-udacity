@@ -16,7 +16,6 @@ class BlockController {
     this.app = app;
     this.memPool = new MemPoolClass.MemPool();
     this.chain = new BlockModelClass.BlockChain();
-    // this.initializeMockData();
     this.getStarByHash();
     this.getStarByAddress();
     this.getBlockByIndex();
@@ -169,26 +168,6 @@ class BlockController {
     });
   }
 
-  /**
-   * Help method to inizialized Mock dataset, adds 10 test blocks to the blocks array
-   */
-  // initializeMockData() {
-  //   this.chain.getBlockHeight().then(async height => {
-  //     if (height == 0) {
-  //       for (var index = 0; index < 10; index++) {
-  //         try {
-  //           let blockAux = new BlockClass.Block(`Test Data #${index}`);
-  //           await this.chain.addNewBlock(blockAux);
-  //         } catch (e) {
-  //           console.log("Found error :", e);
-  //         }
-  //       }
-  //       console.log("Added all blocks !!!");
-  //     } else {
-  //       console.log("Chain is already initialized !!!");
-  //     }
-  //   });
-  // }
 }
 
 /**
