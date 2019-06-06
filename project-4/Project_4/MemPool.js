@@ -82,10 +82,6 @@ class MemPool {
               requestObject,
               isValid
             );
-
-            // setTimeout(() => {
-            //   delete this.mempoolValid[walletAddress];
-            // }, requestObject.validationWindow);
           }
           return this.mempoolValid[walletAddress];
         } else {
@@ -101,6 +97,12 @@ class MemPool {
     delete this.timeoutRequests[walletAddress];
     if (this.mempool[walletAddress] != undefined) {
       delete this.mempool[walletAddress];
+    }
+  }
+
+  cleanUpValidPool(walletAddress) {
+    if (this.mempoolValid[walletAddress] != undefined) {
+      delete this.mempoolValid[walletAddress];
     }
   }
 }

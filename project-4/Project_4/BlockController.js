@@ -40,7 +40,12 @@ class BlockController {
         // check if height parameter is out of bound
         if (height >= req.params.index) {
           this.chain.getBlock(req.params.index).then(block => {
-            res.send(this.getDecodedBlock(block));
+            if (req.params.index == 0) {
+              // Handle Genesis Block
+              res.send(JSON.parse(block));
+            } else {
+              res.send(this.getDecodedBlock(block));
+            }
           });
         } else {
           res.send("Invalid height index!!!");
@@ -91,7 +96,7 @@ class BlockController {
     this.app.post("/block", (req, res) => {
       // Check if content has data and it is string only
       let walletAddress = req.body.address;
-      let starInput = JSON.parse(req.body.star);
+      let starInput = req.body.star;
       try {
         if (
           walletAddress &&
@@ -104,7 +109,7 @@ class BlockController {
           if (valid) {
             let blockAux = new BlockClass.Block(body);
             this.chain.addNewBlock(blockAux).then(block => {
-              this.memPool.cleanUpValidationRequest(walletAddress);
+              this.memPool.cleanUpValidPool(walletAddress);
               res.send(this.getDecodedBlock(block));
             });
           } else {
@@ -167,7 +172,6 @@ class BlockController {
       }
     });
   }
-
 }
 
 /**
