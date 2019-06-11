@@ -15,7 +15,7 @@ const App = {
       const deployedNetwork = starNotaryArtifact.networks[networkId];
       this.meta = new web3.eth.Contract(
         starNotaryArtifact.abi,
-        deployedNetwork.address,
+        deployedNetwork.address
       );
 
       // get accounts
@@ -35,15 +35,34 @@ const App = {
     const { createStar } = this.meta.methods;
     const name = document.getElementById("starName").value;
     const id = document.getElementById("starId").value;
-    await createStar(name, id).send({from: this.account});
+    await createStar(name, id).send({ from: this.account });
     App.setStatus("New Star Owner is " + this.account + ".");
   },
 
   // Implement Task 4 Modify the front end of the DAPP
-  lookUp: async function (){
-    
+  lookUp: async function() {
+    let { lookUptokenIdToStarInfo } = this.meta.methods;
+    let { symbol } = this.meta.methods;
+    let { name } = this.meta.methods;
+    let id = document.getElementById("lookid").value;
+    id = parseInt(id);
+    let starName = await lookUptokenIdToStarInfo(id).call();
+    let contract = await name().call();
+    let sym = await symbol().call();
+    if (starName.length == 0) {
+      App.setStatus("Invalid star id, No star found for id: " + id);
+    } else {
+      App.setStatus(
+        "\nStar ID: " +
+          id +
+          ",\nStar Name: " +
+          starName +
+          ",\nToken Name: " +
+          contract,
+        +",\nToken Symbol: " + sym
+      );
+    }
   }
-
 };
 
 window.App = App;
@@ -54,9 +73,13 @@ window.addEventListener("load", async function() {
     App.web3 = new Web3(window.ethereum);
     await window.ethereum.enable(); // get permission to access accounts
   } else {
-    console.warn("No web3 detected. Falling back to http://127.0.0.1:9545. You should remove this fallback when you deploy live",);
+    console.warn(
+      "No web3 detected. Falling back to http://127.0.0.1:9545. You should remove this fallback when you deploy live"
+    );
     // fallback - use your fallback strategy (local node / hosted node + in-dapp id mgmt / fail)
-    App.web3 = new Web3(new Web3.providers.HttpProvider("http://127.0.0.1:9545"),);
+    App.web3 = new Web3(
+      new Web3.providers.HttpProvider("http://127.0.0.1:9545")
+    );
   }
 
   App.start();
