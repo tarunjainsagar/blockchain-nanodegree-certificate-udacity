@@ -12,8 +12,8 @@ contract StarNotary is ERC721 {
     }
 
     // Implement Task 1 Add a name and symbol properties
-    string public constant NAME = "TJ Udacity Token";
-    string public constant SYMBOL = "TJUDC";
+    string public constant name = "TJ Udacity Token";
+    string public constant symbol = "TJUDC";
 
     // mapping the Star with the Owner Address
     mapping(uint256 => Star) public tokenIdToStarInfo;
