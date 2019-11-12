@@ -4,12 +4,13 @@ import "../coffeeaccesscontrol/ConsumerRole.sol";
 import "../coffeeaccesscontrol/DistributorRole.sol";
 import "../coffeeaccesscontrol/FarmerRole.sol";
 import "../coffeeaccesscontrol/RetailerRole.sol";
+import "../coffeecore/Ownable.sol";
 
 // Define a contract 'Supplychain'
-contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
+contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole, Ownable{
 
   // Define 'owner'
-  address owner;
+  // address owner;
 
   // Define a variable called 'upc' for Universal Product Code (UPC)
   uint  upc;
@@ -69,10 +70,10 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
   event Purchased(uint upc);
 
   // Define a modifer that checks to see if msg.sender == owner of the contract
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
+  // modifier onlyOwner() {
+  //   require(msg.sender == owner);
+  //   _;
+  // }
 
   // Define a modifer that verifies the Caller
   modifier verifyCaller (address _address) {
@@ -146,27 +147,27 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
   // and set 'sku' to 1
   // and set 'upc' to 1
   constructor() public payable {
-    owner = msg.sender;
+    // owner = msg.sender;
     sku = 1;
     upc = 1;
   }
 
   // Define a function 'kill' if required
   function kill() public {
-    if (msg.sender == owner) {
-      selfdestruct(owner);
+    if (msg.sender == owner()) {
+      selfdestruct(owner());
     }
   }
 
   // Define a function 'harvestItem' that allows a farmer to mark an item 'Harvested'
-  function harvestItem(uint _upc, address _originFarmerID, string _originFarmName, string _originFarmInformation, string  _originFarmLatitude, string  _originFarmLongitude, string  _productNotes) public
+  function harvestItem(uint _upc, address _originFarmerID, string _originFarmName, string _originFarmInformation, string  _originFarmLatitude, string  _originFarmLongitude, string  _productNotes) public onlyFarmer
   {
     //Combine sku and upc to create a product id
     uint productID = _upc + sku;
     // Add the new item as part of Harvest
     items[_upc].sku = sku;
     items[_upc].upc = _upc;
-    items[_upc].ownerID = owner;
+    items[_upc].ownerID = owner();
     items[_upc].originFarmerID = _originFarmerID;
     items[_upc].originFarmName = _originFarmName;
     items[_upc].originFarmInformation = _originFarmInformation;
@@ -229,7 +230,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
   // Define a function 'buyItem' that allows the disributor to mark an item 'Sold'
   // Use the above defined modifiers to check if the item is available for sale, if the buyer has paid enough, 
   // and any excess ether sent is refunded back to the buyer
-  function buyItem(uint _upc) public payable
+  function buyItem(uint _upc) public onlyDistributor payable
     // Call modifier to check if upc has passed previous supply chain stage
   forSale(_upc)
     // Call modifer to check if buyer has paid enough
@@ -268,7 +269,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
 
   // Define a function 'receiveItem' that allows the retailer to mark an item 'Received'
   // Use the above modifiers to check if the item is shipped
-  function receiveItem(uint _upc) public
+  function receiveItem(uint _upc) public onlyRetailer
     // Call modifier to check if upc has passed previous supply chain stage
   shipped(_upc)
     // Access Control List enforced by calling Smart Contract / DApp
@@ -285,7 +286,7 @@ contract SupplyChain is FarmerRole, DistributorRole, RetailerRole, ConsumerRole{
 
   // Define a function 'purchaseItem' that allows the consumer to mark an item 'Purchased'
   // Use the above modifiers to check if the item is received
-  function purchaseItem(uint _upc) public
+  function purchaseItem(uint _upc) public onlyConsumer
     // Call modifier to check if upc has passed previous supply chain stage
   received(_upc)
     // Access Control List enforced by calling Smart Contract / DApp
