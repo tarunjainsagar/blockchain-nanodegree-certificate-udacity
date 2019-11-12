@@ -1,1 +1,3 @@
-chaindata/
+build/
+chaindata
+node_modules
